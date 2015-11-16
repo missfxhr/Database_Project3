@@ -69,9 +69,9 @@ BEGIN
 	SELECT uoscode, semester, year
 	FROM uosoffering
 	WHERE (enrollment < maxenrollment) 
-		AND ((NEW.year = in_year AND NEW.semester = in_semester) 
-			OR (in_semester = 'Q1' AND NEW.semester = 'Q2' AND NEW.year = in_year + 1) 
-			OR (in_semester = 'Q2' AND NEW.semester = 'Q1' AND NEW.year = in_year));
+		AND ((year = in_year AND semester = in_semester) 
+			OR (in_semester = 'Q1' AND semester = 'Q2' AND year = in_year + 1) 
+			OR (in_semester = 'Q2' AND semester = 'Q1' AND year = in_year));
 END//
 
 DROP PROCEDURE IF EXISTS print_prerequisites//
