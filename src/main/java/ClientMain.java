@@ -9,7 +9,11 @@ public class ClientMain {
                 return;
             }
             workFlow.listCurrentCourses();
+
+            workFlow.listTranscript();
+
             workFlow.enroll();
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (SQLException e) {

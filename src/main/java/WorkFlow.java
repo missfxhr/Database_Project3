@@ -54,7 +54,7 @@ public class WorkFlow {
     public void listCurrentCourses() throws SQLException,IOException {
         //initialization
         CallableStatement curCourses;
-        ResultSet rowCurCourses;
+        ResultSet coursesSet = null;
 
         // call procedure
         String callProcedure = "{call list_current_courses(?)}";
@@ -62,26 +62,53 @@ public class WorkFlow {
         curCourses.setInt(1, currentStudent.getStudentId());
 
         // list courses
-        if (!curCourses.execute()) {
-            System.out.println("No current courses!");
+        String err = "No current courses!";
+        String hint = "Current Courses:";
+        list(curCourses, coursesSet, err, hint);
+        releaseConnection(curCourses, coursesSet);
+
+        releaseConnection(curCourses, coursesSet);
+    }
+
+    void listTranscript() throws SQLException {
+        //initialization
+        CallableStatement transcript;
+        ResultSet transcriptSet = null;
+
+        // call procedure
+        String callProcedure = "{call list_transcript(?)}";
+        transcript = conn.prepareCall(callProcedure);
+        transcript.setInt(1, currentStudent.getStudentId());
+
+        // list courses
+        String err = "No course on the transcript!";
+        String hint = "Student's Transcript:";
+        list(transcript, transcriptSet, err, hint);
+        releaseConnection(transcript, transcriptSet);
+    }
+
+    void listCourseDetail(){}
+
+    void list(CallableStatement cStmt, ResultSet rs, String err, String hint) throws SQLException {
+        // list courses
+        if (!cStmt.execute()) {
+            System.out.println(err);
             return;
         }
 
-        rowCurCourses = curCourses.getResultSet();
-        System.out.println("Current Courses:");
-        int colNums = rowCurCourses.getMetaData().getColumnCount();
-        while(rowCurCourses.next()) {
+        rs = cStmt.getResultSet();
+        System.out.println(hint);
+        int colNums = rs.getMetaData().getColumnCount();
+        while(rs.next()) {
             for (int col = 1; col <= colNums; col++) {
-                Object colVal = rowCurCourses.getObject(col) != null? rowCurCourses.getObject(col): "n.a.";
+                Object colVal = rs.getObject(col) != null? rs.getObject(col): "n.a.";
                 System.out.print(colVal + " ");
             }
             System.out.println();
         }
 
-        releaseConnection(curCourses, rowCurCourses);
+        releaseConnection(cStmt, rs);
     }
-    void listTranscript(){}
-    void listCourseDetail(){}
 
     public boolean enroll() throws IOException, SQLException{
         // initialization
@@ -123,22 +150,13 @@ public class WorkFlow {
 
     public void listPrerequisites(String uoscode) throws SQLException{
         CallableStatement cStmt;
-        ResultSet rs;
+        ResultSet rs = null;
         String callProcedure = "{call print_prerequisites(?, ?)}";
         cStmt = conn.prepareCall(callProcedure);
         cStmt.setInt(1, currentStudent.getStudentId());
         cStmt.setString(2, uoscode);
-        cStmt.execute();
-        rs = cStmt.getResultSet();
-        System.out.println("Pre-Requisites Courses:");
-        int colNums = rs.getMetaData().getColumnCount();
-        while(rs.next()) {
-            for (int col = 1; col <= colNums; col++) {
-                Object colVal = rs.getObject(col) != null? rs.getObject(col): "n.a.";
-                System.out.print(colVal + " ");
-            }
-            System.out.println();
-        }
+        list(cStmt, rs, "", "Pre-Requisites Courses:");
+
         releaseConnection(cStmt,rs);
     }
 
