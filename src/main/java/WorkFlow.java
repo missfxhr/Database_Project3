@@ -3,22 +3,40 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.sql.*;
+import java.util.Calendar;
 
 public class WorkFlow {
     private Student currentStudent;
     private Connection conn;
+    private String semester;
+    private int year;
 
     public Student getStudent(){
         return currentStudent;
     }
 
-    public void serverConnInit() throws SQLException{
+    private void serverConnInit() throws SQLException{
         conn = DriverManager.getConnection("jdbc:mysql://database495.coxgjlcsyyhn.us-east-1.rds.amazonaws.com:3306/project3-nudb?user=root&password=12345678");
+    }
+
+    private void updateDate() {
+        Calendar cal = Calendar.getInstance();
+        int month = cal.get(Calendar.MONTH);
+        this.year = cal.get(Calendar.YEAR);
+        if (month <= 2){
+            this.semester = "Q1";
+            this.year -= 1;
+        }else if (month >= 9) {
+            this.semester = "Q1";
+        }else{
+            this.semester = "Q2";
+        }
     }
 
     public boolean login() throws IOException, SQLException{
         //initialization
         serverConnInit();
+        updateDate();
         int id;
         String password;
         CallableStatement cStmt;
@@ -57,9 +75,11 @@ public class WorkFlow {
         ResultSet coursesSet;
 
         // call procedure
-        String callProcedure = "{call list_current_courses(?)}";
+        String callProcedure = "{call list_current_courses(?,?,?)}";
         curCourses = conn.prepareCall(callProcedure);
         curCourses.setInt(1, currentStudent.getStudentId());
+        curCourses.setString(2, this.semester);
+        curCourses.setInt(3, this.year);
 
         // list courses
         String err = "No current courses!";
@@ -134,10 +154,28 @@ public class WorkFlow {
         }
     }
 
-    public boolean enroll() throws IOException, SQLException{
-        // initialization
+    private void printEnrollCandidates() throws SQLException{
         CallableStatement cStmt;
         ResultSet rs;
+
+        String callProcedure = "{call print_candidate_courses(?,?,?)}";
+        cStmt = conn.prepareCall(callProcedure);
+        cStmt.setInt(1, currentStudent.getStudentId());
+        cStmt.setString(2, this.semester);
+        cStmt.setInt(3, this.year);
+
+        String hint = "Candidate Courses:";
+
+        rs = getCallResult(cStmt,"");
+        list(rs,hint);
+        releaseConnection(cStmt,rs);
+    }
+
+    public boolean enroll() throws IOException, SQLException{
+        printEnrollCandidates();
+
+        // initialization
+        CallableStatement cStmt;
         String uoscode, semester;
         int year;
 
