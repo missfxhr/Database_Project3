@@ -1,3 +1,4 @@
+import javax.xml.transform.Result;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -37,11 +38,10 @@ public class WorkFlow {
         cStmt.setString(2, password);
 
         // check validity
-        if (!cStmt.execute()) {
-            System.out.println("Login Failed - Wrong Student Name or Wrong Password");
+        rs = getCallResult(cStmt,"Login Failed - Wrong Student Name or Wrong Password");
+        if (rs == null) {
             return false;
         }
-        rs = cStmt.getResultSet();
         while(rs.next()) {
             currentStudent = new Student(rs.getInt("id"), rs.getString("name"), rs.getString("password"));
         }
@@ -54,7 +54,7 @@ public class WorkFlow {
     public void listCurrentCourses() throws SQLException,IOException {
         //initialization
         CallableStatement curCourses;
-        ResultSet coursesSet = null;
+        ResultSet coursesSet;
 
         // call procedure
         String callProcedure = "{call list_current_courses(?)}";
@@ -64,16 +64,15 @@ public class WorkFlow {
         // list courses
         String err = "No current courses!";
         String hint = "Current Courses:";
-        list(curCourses, coursesSet, err, hint);
-        releaseConnection(curCourses, coursesSet);
-
+        coursesSet = getCallResult(curCourses,err);
+        list(coursesSet, hint);
         releaseConnection(curCourses, coursesSet);
     }
 
     void listTranscript() throws SQLException {
         //initialization
         CallableStatement transcript;
-        ResultSet transcriptSet = null;
+        ResultSet transcriptSet;
 
         // call procedure
         String callProcedure = "{call list_transcript(?)}";
@@ -83,20 +82,24 @@ public class WorkFlow {
         // list courses
         String err = "No course on the transcript!";
         String hint = "Student's Transcript:";
-        list(transcript, transcriptSet, err, hint);
+        transcriptSet = getCallResult(transcript,err);
+        list(transcriptSet,hint);
         releaseConnection(transcript, transcriptSet);
     }
 
     void listCourseDetail(){}
 
-    void list(CallableStatement cStmt, ResultSet rs, String err, String hint) throws SQLException {
-        // list courses
+    private ResultSet getCallResult(CallableStatement cStmt,String err) throws SQLException {
         if (!cStmt.execute()) {
             System.out.println(err);
-            return;
+            return null;
         }
+        return cStmt.getResultSet();
+    }
 
-        rs = cStmt.getResultSet();
+    private void list(ResultSet rs,  String hint) throws SQLException {
+        // list courses
+        if (rs==null) return;
         System.out.println(hint);
         int colNums = rs.getMetaData().getColumnCount();
         while(rs.next()) {
@@ -106,8 +109,6 @@ public class WorkFlow {
             }
             System.out.println();
         }
-
-        releaseConnection(cStmt, rs);
     }
 
     public boolean enroll() throws IOException, SQLException{
@@ -150,12 +151,17 @@ public class WorkFlow {
 
     public void listPrerequisites(String uoscode) throws SQLException{
         CallableStatement cStmt;
-        ResultSet rs = null;
+        ResultSet rs;
+
         String callProcedure = "{call print_prerequisites(?, ?)}";
         cStmt = conn.prepareCall(callProcedure);
         cStmt.setInt(1, currentStudent.getStudentId());
         cStmt.setString(2, uoscode);
-        list(cStmt, rs, "", "Pre-Requisites Courses:");
+
+        String hint = "Pre-Requisites Courses:";
+
+        rs = getCallResult(cStmt,"");
+        list(rs, hint);
 
         releaseConnection(cStmt,rs);
     }

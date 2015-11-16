@@ -5,7 +5,10 @@ delimiter //
 DROP PROCEDURE IF EXISTS login//
 CREATE PROCEDURE login(IN studid INT(11), IN userpassword VARCHAR(10))
 BEGIN
-	SELECT * FROM student WHERE studid = id AND userpassword = password;
+	IF EXISTS (SELECT * FROM student WHERE studid = id AND userpassword = password)
+	THEN
+		SELECT * FROM student WHERE studid = id AND userpassword = password;
+	END IF;
 END//
 
 DROP PROCEDURE IF EXISTS list_current_courses//
