@@ -71,7 +71,8 @@ BEGIN
 	WHERE (enrollment < maxenrollment) 
 		AND ((year = in_year AND semester = in_semester) 
 			OR (in_semester = 'Q1' AND semester = 'Q2' AND year = in_year + 1) 
-			OR (in_semester = 'Q2' AND semester = 'Q1' AND year = in_year));
+			OR (in_semester = 'Q2' AND semester = 'Q1' AND year = in_year))
+		AND NOT EXISTS(SELECT * FROM transcript WHERE in_studid = studid AND uosoffering.uoscode = uoscode);
 END//
 
 DROP PROCEDURE IF EXISTS print_prerequisites//
