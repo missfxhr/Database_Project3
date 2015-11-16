@@ -137,4 +137,12 @@ BEGIN
     VALUES(in_studid,in_uoscode,in_semester,in_year,NULL);
 END//
 
+DROP PROCEDURE IF EXISTS update_profile//
+CREATE PROCEDURE update_profile(IN studid INT(11), IN userpassword VARCHAR(10), IN useraddress VARCHAR(50))
+BEGIN
+	UPDATE student
+    SET Address = useraddress, Password = userpassword
+    WHERE Id = studid;
+END//
+
 delimiter ;
