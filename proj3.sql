@@ -3,12 +3,9 @@
 delimiter //
 
 DROP PROCEDURE IF EXISTS login//
-CREATE PROCEDURE login(IN username VARCHAR(20), IN userpassword VARCHAR(10))
+CREATE PROCEDURE login(IN studid INT(11), IN userpassword VARCHAR(10))
 BEGIN
-	IF EXISTS (SELECT * FROM student WHERE username = Name AND userpassword = password) 
-    THEN
-        SELECT * FROM student WHERE username = Name AND userpassword = password;
-	END IF;
+	SELECT * FROM student WHERE studid = id AND userpassword = password;
 END//
 
 DROP PROCEDURE IF EXISTS list_current_courses//
@@ -128,6 +125,13 @@ BEGIN
 	FROM requires LEFT JOIN transcript
 	ON requires.prerequoscode = transcript.uoscode
 	WHERE in_studid = transcript.studid AND requires.uoscode = in_uoscode AND (grade IS NULL OR grade = 'F');
+END//
+
+DROP PROCEDURE IF EXISTS enroll//
+CREATE PROCEDURE enroll(IN in_studid INT(11), IN in_uoscode CHAR(8), IN in_semester CHAR(2), IN in_year INT(11))
+BEGIN
+	INSERT INTO transcript
+    VALUES(in_studid,in_uoscode,in_semester,in_year,NULL);
 END//
 
 delimiter ;
