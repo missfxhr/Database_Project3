@@ -1,4 +1,3 @@
-import javax.xml.transform.Result;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -158,13 +157,13 @@ public class WorkFlow {
         CallableStatement cStmt;
         ResultSet rs;
 
-        String callProcedure = "{call print_candidate_courses(?,?,?)}";
+        String callProcedure = "{call print_enroll_candidate_courses(?,?,?)}";
         cStmt = conn.prepareCall(callProcedure);
         cStmt.setInt(1, currentStudent.getStudentId());
         cStmt.setString(2, this.semester);
         cStmt.setInt(3, this.year);
 
-        String hint = "Candidate Courses:";
+        String hint = "Enroll Candidate Courses:";
 
         rs = getCallResult(cStmt,"");
         list(rs,hint);
@@ -225,6 +224,57 @@ public class WorkFlow {
         list(rs, hint);
 
         releaseConnection(cStmt,rs);
+    }
+
+    private void printWithdrawCandidates() throws SQLException{
+        CallableStatement cStmt;
+        ResultSet rs;
+
+        String callProcedure = "{call print_withdraw_candidate_courses(?)}";
+        cStmt = conn.prepareCall(callProcedure);
+        cStmt.setInt(1, currentStudent.getStudentId());
+
+        String hint = "Withdraw Candidate Courses:";
+
+        rs = getCallResult(cStmt,"");
+        list(rs,hint);
+        releaseConnection(cStmt,rs);
+    }
+
+    public boolean withdraw() throws IOException, SQLException{
+        printWithdrawCandidates();
+
+        // initialization
+        CallableStatement cStmt;
+        String uoscode, semester;
+        int year;
+
+        // read input
+        System.out.println("Enter Course Code:");
+        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+        uoscode = bufferRead.readLine();
+        System.out.println("Enter Course Semester:");
+        semester = bufferRead.readLine();
+        System.out.println("Enter Course Year:");
+        year = Integer.parseInt(bufferRead.readLine());
+
+        // call procedure
+        String callProcedure = "{call withdraw(?,?,?,?)}";
+        cStmt = conn.prepareCall(callProcedure);
+        cStmt.setInt(1, currentStudent.getStudentId());
+        cStmt.setString(2, uoscode);
+        cStmt.setString(3, semester);
+        cStmt.setInt(4, year);
+
+        // check validity
+        try {
+            cStmt.execute();
+        } catch (SQLException e){
+            System.out.println("SQLException: " + e.getMessage());
+            return false;
+        }
+        System.out.println("Successfully Withdrew!");
+        return true;
     }
 
     private void releaseConnection(CallableStatement cStmt, ResultSet rs) throws SQLException {

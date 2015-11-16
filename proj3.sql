@@ -114,22 +114,22 @@ END//
 
 
 DROP PROCEDURE IF EXISTS withdraw//
-CREATE PROCEDURE withdraw(IN in_studid INT(11), IN in_usocode CHAR(8), IN in_semester CHAR(2), IN in_year INT(11))
+CREATE PROCEDURE withdraw(IN in_studid INT(11), IN in_uoscode CHAR(8), IN in_semester CHAR(2), IN in_year INT(11))
 BEGIN
-	DELETE FROM transcript
-    WHERE studid = in_studid AND usocode = in_usocode;
-    
 	# update enroll number
 	UPDATE uosoffering
 	SET enrollment = enrollment - 1
 	WHERE uoscode = in_uoscode AND semester = in_semester AND year = in_year;
+    
+	DELETE FROM transcript
+    WHERE studid = in_studid AND uoscode = in_uoscode;
 END//
 
 DROP TRIGGER IF EXISTS withdraw//
 CREATE TRIGGER withdraw AFTER UPDATE ON uosoffering
 FOR EACH ROW
 	BEGIN
-        IF NEW.enrollment * 2 < NEW.maxenrollment
+        IF NEW.enrollment < OLD.enrollment AND NEW.enrollment * 2 < NEW.maxenrollment
         THEN 
 			SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Low Enrollment Rate for Dropped Course';
 		END IF;
