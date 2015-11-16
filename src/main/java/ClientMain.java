@@ -12,6 +12,8 @@ public class ClientMain {
 
             workFlow.listTranscript();
 
+            workFlow.listCourseDetail();
+
             workFlow.enroll();
 
         } catch (IOException e) {

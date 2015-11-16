@@ -87,7 +87,30 @@ public class WorkFlow {
         releaseConnection(transcript, transcriptSet);
     }
 
-    void listCourseDetail(){}
+    void listCourseDetail() throws SQLException, IOException {
+        //initialization
+        CallableStatement courseDitail;
+        ResultSet courseDitailSet;
+        String uoscode;
+
+        // read input
+        System.out.println("Enter Course Code:");
+        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+        uoscode = bufferRead.readLine();
+
+        // call procedure
+        String callProcedure = "{call list_course_detail(?, ?)}";
+        courseDitail = conn.prepareCall(callProcedure);
+        courseDitail.setInt(1, currentStudent.getStudentId());
+        courseDitail.setString(2, uoscode);
+
+        // list courses
+        String err = "";
+        String hint = "Course Detail:";
+        courseDitailSet = getCallResult(courseDitail,err);
+        list(courseDitailSet,hint);
+        releaseConnection(courseDitail, courseDitailSet);
+    }
 
     private ResultSet getCallResult(CallableStatement cStmt,String err) throws SQLException {
         if (!cStmt.execute()) {
