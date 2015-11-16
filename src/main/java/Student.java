@@ -17,7 +17,7 @@ public class Student {
         return studentId;
     }
 
-    int studentId;
-    String username;
-    String address;
+    private int studentId;
+    private String username;
+    private String address;
 }

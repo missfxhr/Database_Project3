@@ -102,9 +102,32 @@ FOR EACH ROW
 		END IF;
         
         # pre-requisites limitation
-        SET @c1 = 0;
-        SELECT @c1:=@c1 +1 AS c1 ,prerequoscode FROM requires WHERE NEW.uoscode = uoscode AND CURDATE() >= enforcedsince;
+        IF EXISTS
+        (
+			SELECT grade
+			FROM requires LEFT JOIN transcript
+			ON requires.prerequoscode = transcript.uoscode
+			WHERE NEW.studid = transcript.studid AND requires.uoscode = NEW.uoscode AND (grade IS NULL OR grade = 'F')
+        )
+        THEN
+			SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Unsatisfied Pre-requisites';
+		END IF;
         
+        # update enroll number
+        UPDATE uosoffering
+        SET enrollment = enrollment + 1
+        WHERE uoscode = NEW.uoscode  AND semester = NEW.semester AND year = NEW.year;
+        
+        SET NEW.grade = NULL;
 	END//
+
+DROP PROCEDURE IF EXISTS print_prerequisites//
+CREATE PROCEDURE print_prerequisites(IN in_studid INT(11), IN in_uoscode CHAR(8))
+BEGIN
+	SELECT transcript.uoscode as uoscode, transcript.semester as semester, transcript.year as year, transcript.grade as grade
+	FROM requires LEFT JOIN transcript
+	ON requires.prerequoscode = transcript.uoscode
+	WHERE in_studid = transcript.studid AND requires.uoscode = in_uoscode AND (grade IS NULL OR grade = 'F');
+END//
 
 delimiter ;
