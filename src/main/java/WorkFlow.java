@@ -14,6 +14,67 @@ public class WorkFlow {
         return currentStudent;
     }
 
+    public void mainController() throws IOException, SQLException{
+        System.out.println("----Login In----");
+        if (!login()) {
+            return;
+        }
+        listCurrentCourses();
+        boolean quit = false;
+        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+        while(!quit){
+            System.out.println();
+            System.out.println("----Main Menu----");
+            System.out.println("Please Enter Action Code:");
+            System.out.println("Possible Actions: 1 for list transcript");
+            System.out.println("Possible Actions: 2 for enroll");
+            System.out.println("Possible Actions: 3 for withdraw");
+            System.out.println("Possible Actions: 4 for update profile");
+            System.out.println("Possible Actions: 0 for logout");
+            int action_code = Integer.parseInt(bufferRead.readLine());
+            switch (action_code){
+                case 0:
+                    quit = true;
+                    break;
+                case 1:
+                    listTranscript();
+                    boolean quitTranscript = false;
+                    BufferedReader bufferReadTranscript = new BufferedReader(new InputStreamReader(System.in));
+                    while(!quitTranscript){
+                        System.out.println();
+                        System.out.println("----Course Detail View----");
+                        System.out.println("Please Enter Action Code:");
+                        System.out.println("Possible Actions: 1 for see course detail");
+                        System.out.println("Possible Actions: 0 for go back");
+                        int transcript_action_code = Integer.parseInt(bufferReadTranscript.readLine());
+                        switch (transcript_action_code) {
+                            case 0:
+                                quitTranscript = true;
+                                break;
+                            case 1:
+                                listCourseDetail();
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                    break;
+                case 2:
+                    enroll();
+                    break;
+                case 3:
+                    withdraw();
+                    break;
+                case 4:
+                    updateProfile();
+                    break;
+                default:
+                    break;
+            }
+
+        }
+    }
+
     private void serverConnInit() throws SQLException{
         conn = DriverManager.getConnection("jdbc:mysql://database495.coxgjlcsyyhn.us-east-1.rds.amazonaws.com:3306/project3-nudb?user=root&password=12345678");
     }
@@ -32,7 +93,7 @@ public class WorkFlow {
         }
     }
 
-    public boolean login() throws IOException, SQLException{
+    private boolean login() throws IOException, SQLException{
         //initialization
         serverConnInit();
         updateDate();
@@ -62,13 +123,14 @@ public class WorkFlow {
         while(rs.next()) {
             currentStudent = new Student(rs.getInt("id"), rs.getString("name"), rs.getString("password"));
         }
+        System.out.println();
         System.out.println(currentStudent.getName() + ", Welcome!");
 
         releaseConnection(cStmt, rs);
         return true;
     }
 
-    public void listCurrentCourses() throws SQLException,IOException {
+    private void listCurrentCourses() throws SQLException,IOException {
         //initialization
         CallableStatement curCourses;
         ResultSet coursesSet;
@@ -82,13 +144,13 @@ public class WorkFlow {
 
         // list courses
         String err = "No current courses!";
-        String hint = "Current Courses:";
+        String hint =  currentStudent.getName() + "'s Current Courses:";
         coursesSet = getCallResult(curCourses,err);
         list(coursesSet, hint);
         releaseConnection(curCourses, coursesSet);
     }
 
-    void listTranscript() throws SQLException {
+    private void listTranscript() throws SQLException {
         //initialization
         CallableStatement transcript;
         ResultSet transcriptSet;
@@ -100,16 +162,16 @@ public class WorkFlow {
 
         // list courses
         String err = "No course on the transcript!";
-        String hint = "Student's Transcript:";
+        String hint = currentStudent.getName() + "'s Transcript:";
         transcriptSet = getCallResult(transcript,err);
         list(transcriptSet,hint);
         releaseConnection(transcript, transcriptSet);
     }
 
-    void listCourseDetail() throws SQLException, IOException {
+    private void listCourseDetail() throws SQLException, IOException {
         //initialization
-        CallableStatement courseDitail;
-        ResultSet courseDitailSet;
+        CallableStatement courseDetail;
+        ResultSet courseDetailSet;
         String uoscode;
 
         // read input
@@ -119,19 +181,19 @@ public class WorkFlow {
 
         // call procedure
         String callProcedure = "{call list_course_detail(?, ?)}";
-        courseDitail = conn.prepareCall(callProcedure);
-        courseDitail.setInt(1, currentStudent.getStudentId());
-        courseDitail.setString(2, uoscode);
+        courseDetail = conn.prepareCall(callProcedure);
+        courseDetail.setInt(1, currentStudent.getStudentId());
+        courseDetail.setString(2, uoscode);
 
         // list courses
         String err = "";
-        String hint = "Course Detail:";
-        courseDitailSet = getCallResult(courseDitail,err);
-        list(courseDitailSet,hint);
-        releaseConnection(courseDitail, courseDitailSet);
+        String hint = "Course Details:";
+        courseDetailSet = getCallResult(courseDetail,err);
+        list(courseDetailSet,hint);
+        releaseConnection(courseDetail, courseDetailSet);
     }
 
-    public void updateProfile() throws IOException, SQLException {
+    private void updateProfile() throws IOException, SQLException {
         //initialization
         CallableStatement update;
         String password;
@@ -145,13 +207,14 @@ public class WorkFlow {
         address = bufferRead.readLine();
 
         //update profile
-        String query = "{UPDATE student SET Address = '" + address + "', Password = '" + password + "' WHERE Id = 3213;COMMIT;}";
+        String query = "{call update_profile(?,?,?)}";
 
-        conn.prepareCall(query);
-//        update.setString((int)1, address);
-//        update.setString((int)2, password);
+        update = conn.prepareCall(query);
+        update.setInt(1, currentStudent.getStudentId());
+        update.setString(2, password);
+        update.setString(3, address);
 
-
+        update.execute();
         System.out.println("Profile get updated!");
     }
 
@@ -166,6 +229,7 @@ public class WorkFlow {
     private void list(ResultSet rs,  String hint) throws SQLException {
         // list courses
         if (rs==null) return;
+        System.out.println();
         System.out.println(hint);
         int colNums = rs.getMetaData().getColumnCount();
         while(rs.next()) {
@@ -194,7 +258,7 @@ public class WorkFlow {
         releaseConnection(cStmt,rs);
     }
 
-    public boolean enroll() throws IOException, SQLException{
+    private boolean enroll() throws IOException, SQLException{
         printEnrollCandidates();
 
         // initialization
@@ -233,7 +297,7 @@ public class WorkFlow {
         return true;
     }
 
-    public void listPrerequisites(String uoscode) throws SQLException{
+    private void listPrerequisites(String uoscode) throws SQLException{
         CallableStatement cStmt;
         ResultSet rs;
 
@@ -265,7 +329,7 @@ public class WorkFlow {
         releaseConnection(cStmt,rs);
     }
 
-    public boolean withdraw() throws IOException, SQLException{
+    private boolean withdraw() throws IOException, SQLException{
         printWithdrawCandidates();
 
         // initialization

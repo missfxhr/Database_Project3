@@ -1,22 +1,11 @@
-import java.io.IOException;
+import java.io.*;
 import java.sql.SQLException;
 
 public class ClientMain {
     public static void main(String[] argvs){
         WorkFlow workFlow = new WorkFlow();
         try {
-            if (!workFlow.login()) {
-                return;
-            }
-            workFlow.updateProfile();
-//            workFlow.listCurrentCourses();
-
-//            workFlow.listTranscript();
-
-            //workFlow.listCourseDetail();
-
-            workFlow.enroll();
-
+            workFlow.mainController();
         } catch (IOException e) {
             e.printStackTrace();
         } catch (SQLException e) {
