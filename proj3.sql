@@ -1,5 +1,11 @@
 -- project3 procedure
 
+DROP TABLE IF EXISTS warning_message;
+CREATE TABLE warning_message(
+	warning INT
+);
+INSERT INTO warning_message VALUES(0);
+
 delimiter //
 
 DROP PROCEDURE IF EXISTS login//
@@ -14,7 +20,7 @@ END//
 DROP PROCEDURE IF EXISTS list_current_courses//
 CREATE PROCEDURE list_current_courses(IN in_studid INT(11),IN in_semester CHAR(2),IN in_year INT(11))
 BEGIN
-	SELECT * 
+	SELECT uoscode,semester,year,deptid,uosname,credits
     FROM transcript NATURAL JOIN unitofstudy
     WHERE studid = in_studid AND year = in_year AND semester = in_semester;
 END//
@@ -64,15 +70,16 @@ FOR EACH ROW
 	END//
 
 DROP PROCEDURE IF EXISTS print_enroll_candidate_courses//
-CREATE PROCEDURE print_enroll_candidate_courses(IN in_studid INT(11), IN in_semester CHAR(2),IN in_year INT(11))
+CREATE PROCEDURE print_enroll_candidate_courses(IN in_studid INT(11), IN in_semester CHAR(2),IN in_year INT(11),IN in_next_semester CHAR(2),IN in_next_year INT(11))
 BEGIN
-	SELECT uoscode, semester, year
-	FROM uosoffering
+	DROP TABLE IF EXISTS enroll_candidate_courses;
+    CREATE TABLE enroll_candidate_courses AS
+	SELECT uoscode,semester,year,deptid,uosname,credits
+	FROM uosoffering natural join unitofstudy
 	WHERE (enrollment < maxenrollment) 
-		AND ((year = in_year AND semester = in_semester) 
-			OR (in_semester = 'Q1' AND semester = 'Q2' AND year = in_year + 1) 
-			OR (in_semester = 'Q2' AND semester = 'Q1' AND year = in_year))
+		AND ((semester = in_semester AND year = in_year) OR (semester = in_next_semester AND year = in_next_year))
 		AND NOT EXISTS(SELECT * FROM transcript WHERE in_studid = studid AND uosoffering.uoscode = uoscode);
+	SELECT * FROM enroll_candidate_courses;
 END//
 
 DROP PROCEDURE IF EXISTS print_prerequisites//
@@ -85,15 +92,15 @@ BEGIN
 END//
 
 DROP PROCEDURE IF EXISTS enroll//
-CREATE PROCEDURE enroll(IN in_studid INT(11), IN in_uoscode CHAR(8), IN in_semester CHAR(2), IN in_year INT(11))
+CREATE PROCEDURE enroll(IN in_studid INT(11), IN in_uoscode CHAR(8))
 BEGIN
-	INSERT INTO transcript
-    VALUES(in_studid,in_uoscode,in_semester,in_year,NULL);
-    
+	SELECT semester,year into @Q,@Y FROM enroll_candidate_courses WHERE uoscode = in_uoscode;
+	INSERT INTO transcript(studid,uoscode,semester,year,grade)
+    VALUES(in_studid,in_uoscode,@Q,@Y,NULL);
 	# update enroll number
 	UPDATE uosoffering
 	SET enrollment = enrollment + 1
-	WHERE uoscode = in_uoscode AND semester = in_semester AND year = in_year;
+	WHERE uoscode = in_uoscode AND semester = @Q AND year = @Y;
 END//
 
 DROP PROCEDURE IF EXISTS update_profile//
@@ -107,19 +114,24 @@ END//
 DROP PROCEDURE IF EXISTS print_withdraw_candidate_courses//
 CREATE PROCEDURE print_withdraw_candidate_courses(IN in_studid INT(11))
 BEGIN
-	SELECT uoscode, semester, year
-	FROM transcript
-	WHERE grade IS NULL;
+	DROP TABLE IF EXISTS withdraw_candidate_courses;
+    CREATE TABLE withdraw_candidate_courses AS
+	SELECT uoscode,semester,year,deptid,uosname,credits
+	FROM transcript natural join unitofstudy
+	WHERE grade IS NULL AND in_studid = studid;
+    SELECT * FROM withdraw_candidate_courses;
 END//
 
 
 DROP PROCEDURE IF EXISTS withdraw//
-CREATE PROCEDURE withdraw(IN in_studid INT(11), IN in_uoscode CHAR(8), IN in_semester CHAR(2), IN in_year INT(11))
+CREATE PROCEDURE withdraw(IN in_studid INT(11), IN in_uoscode CHAR(8))
 BEGIN
+	SELECT semester,year into @Q,@Y FROM withdraw_candidate_courses WHERE uoscode = in_uoscode;
+	
 	# update enroll number
 	UPDATE uosoffering
 	SET enrollment = enrollment - 1
-	WHERE uoscode = in_uoscode AND semester = in_semester AND year = in_year;
+	WHERE uoscode = in_uoscode AND semester = @Q AND year = @Y;
     
 	DELETE FROM transcript
     WHERE studid = in_studid AND uoscode = in_uoscode;
@@ -131,8 +143,23 @@ FOR EACH ROW
 	BEGIN
         IF NEW.enrollment < OLD.enrollment AND NEW.enrollment * 2 < NEW.maxenrollment
         THEN 
-			SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Low Enrollment Rate for Dropped Course';
+			CALL set_warning_message(1);
 		END IF;
 	END//
+    
+DROP PROCEDURE IF EXISTS set_warning_message//
+CREATE PROCEDURE set_warning_message(IN warning_value INT)
+BEGIN
+	# update enroll number
+	UPDATE warning_message
+	SET warning = warning_value;
+END//
+
+DROP PROCEDURE IF EXISTS check_warning_message//
+CREATE PROCEDURE check_warning_message()
+BEGIN
+	# update enroll number
+	SELECT warning FROM warning_message;
+END//
 
 delimiter ;
