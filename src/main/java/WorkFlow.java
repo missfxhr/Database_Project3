@@ -131,6 +131,30 @@ public class WorkFlow {
         releaseConnection(courseDitail, courseDitailSet);
     }
 
+    public void updateProfile() throws IOException, SQLException {
+        //initialization
+        CallableStatement update;
+        String password;
+        String address;
+
+        // input new password and address
+        System.out.println("Enter New Password:");
+        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+        password = bufferRead.readLine();
+        System.out.println("Enter New Address:");
+        address = bufferRead.readLine();
+
+        //update profile
+        String query = "{UPDATE student SET Address = '" + address + "', Password = '" + password + "' WHERE Id = 3213;COMMIT;}";
+
+        conn.prepareCall(query);
+//        update.setString((int)1, address);
+//        update.setString((int)2, password);
+
+
+        System.out.println("Profile get updated!");
+    }
+
     private ResultSet getCallResult(CallableStatement cStmt,String err) throws SQLException {
         if (!cStmt.execute()) {
             System.out.println(err);

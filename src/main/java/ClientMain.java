@@ -8,11 +8,12 @@ public class ClientMain {
             if (!workFlow.login()) {
                 return;
             }
-            workFlow.listCurrentCourses();
+            workFlow.updateProfile();
+//            workFlow.listCurrentCourses();
 
-            workFlow.listTranscript();
+//            workFlow.listTranscript();
 
-            workFlow.listCourseDetail();
+            //workFlow.listCourseDetail();
 
             workFlow.enroll();
 
