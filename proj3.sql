@@ -28,7 +28,7 @@ END//
 DROP PROCEDURE IF EXISTS list_transcript//
 CREATE PROCEDURE list_transcript(IN id INT(11))
 BEGIN
-	SELECT * 
+	SELECT uoscode,semester,year,grade
     FROM transcript 
     WHERE studid = id;
 END//
@@ -36,7 +36,7 @@ END//
 DROP PROCEDURE IF EXISTS list_course_detail//
 CREATE PROCEDURE list_course_detail(IN stuId INT(11), IN classNum char(8))
 BEGIN
-	SELECT StudId, UoSCode, UoSName, Name as lecturer, Enrollment, MaxEnrollment, Year, Semester, Grade
+	SELECT UoSCode, UoSName, Name as lecturer, Enrollment, MaxEnrollment, Year, Semester, Grade
 	FROM
 	(SELECT UoSCode, UoSName
 	FROM unitofstudy) helper1
