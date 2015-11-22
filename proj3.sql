@@ -114,7 +114,7 @@ END//
 DROP PROCEDURE IF EXISTS update_profile//
 CREATE PROCEDURE update_profile(IN studid INT(11), IN userpassword VARCHAR(10), IN useraddress VARCHAR(50), IN flag INT)
 BEGIN
-	IF flag = 0
+	IF flag = 3
     THEN 
 		UPDATE student
 		SET Address = useraddress, Password = userpassword
@@ -122,12 +122,12 @@ BEGIN
 	ELSEIF flag = 1
     THEN 
 		UPDATE student
-		SET Password = userpassword
+		SET Address = useraddress
 		WHERE Id = studid;
 	ELSEIF flag = 2
     THEN 
 		UPDATE student
-		SET Address = useraddress
+		SET Password = userpassword
 		WHERE Id = studid;
 	END IF;
 END//
