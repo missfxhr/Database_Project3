@@ -4,46 +4,32 @@ import java.awt.event.ActionListener;
 import java.sql.SQLException;
 
 public class MainMenuFrame extends JFrame{
-    private DBMSWorkFlow workFlow;
     private JPanel panel;
     private JList<String> currentCourses;
-    private JButton detailButton;
-    private JList<String> transcript;
-    private JTextArea courseDetail;
     private JButton showTranscriptButton;
     private JButton enrollACourseButton;
     private JButton withdrawACourseButton;
+    private JButton refreshCurrentCourseButton;
+    private JButton updateProfileButton;
+    private JLabel currentQuarterYearLabel;
+    private JLabel studentNameLabel;
+    private JButton logoutButton;
 
-    public MainMenuFrame(DBMSWorkFlow workflow){
+    private DBMSWorkFlow workFlow;
+    private LoginFrame loginFrame;
+
+    public MainMenuFrame(DBMSWorkFlow workflow,LoginFrame loginframe){
         super("Main Menu");
         setContentPane(panel);
         pack();
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
+        loginFrame = loginframe;
         workFlow = workflow;
-
 
         showTranscriptButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
-                try {
-                    transcript.setListData(workFlow.listTranscript());
-                } catch (SQLException e) {
-                    System.out.println("SQLException: " + e.getMessage());
-                    System.out.println("SQLState: " + e.getSQLState());
-                    System.out.println("VendorError: " + e.getErrorCode());
-                }
-            }
-        });
-
-        detailButton.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent event) {
-                try {
-                    courseDetail.setText(workFlow.listCourseDetail(transcript.getSelectedValue().split(" ")[0]));
-                } catch (SQLException e) {
-                    System.out.println("SQLException: " + e.getMessage());
-                    System.out.println("SQLState: " + e.getSQLState());
-                    System.out.println("VendorError: " + e.getErrorCode());
-                }
+                JFrame transcriptFrame = new TranscriptFrame(workFlow);
             }
         });
 
@@ -53,6 +39,39 @@ public class MainMenuFrame extends JFrame{
             }
         });
 
+        withdrawACourseButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                JFrame withdrawFrame = new WithdrawFrame(workFlow);
+            }
+        });
+
+        refreshCurrentCourseButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                refreshCurrentCourse();
+            }
+        });
+
+        updateProfileButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                JFrame updateProfileFrame = new UpdateProfileFrame(workFlow);
+            }
+        });
+
+        logoutButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent event) {
+                dispose();
+                loginFrame.setVisible(true);
+            }
+        });
+
+        studentNameLabel.setText(workFlow.getStudent().getName());
+        currentQuarterYearLabel.setText(workFlow.getCurrentQuarterYear().toString());
+        refreshCurrentCourse();
+
+        setVisible(true);
+    }
+
+    private void refreshCurrentCourse(){
         try{
             currentCourses.setListData(workFlow.listCurrentCourses());
         }catch (SQLException e){
@@ -60,7 +79,5 @@ public class MainMenuFrame extends JFrame{
             System.out.println("SQLState: " + e.getSQLState());
             System.out.println("VendorError: " + e.getErrorCode());
         }
-
-        setVisible(true);
     }
 }

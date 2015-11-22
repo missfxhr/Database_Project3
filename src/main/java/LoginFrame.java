@@ -12,7 +12,7 @@ public class LoginFrame extends JFrame{
     private JPasswordField password;
 
     public LoginFrame(DBMSWorkFlow workflow) {
-        super("Login");
+        super("Login Menu");
         setContentPane(panel);
         pack();
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -44,8 +44,8 @@ public class LoginFrame extends JFrame{
                         "Login Error",
                         JOptionPane.ERROR_MESSAGE);
             } else {
-                MainMenuFrame mainMenuFrame = new MainMenuFrame(workFlow);
-                dispose();
+                MainMenuFrame mainMenuFrame = new MainMenuFrame(workFlow,LoginFrame.this);
+                setVisible(false);
             }
         } catch (SQLException e) {
             System.out.println("SQLException: " + e.getMessage());

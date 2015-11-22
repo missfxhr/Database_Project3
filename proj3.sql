@@ -20,7 +20,7 @@ END//
 DROP PROCEDURE IF EXISTS list_current_courses//
 CREATE PROCEDURE list_current_courses(IN in_studid INT(11),IN in_semester CHAR(2),IN in_year INT(11))
 BEGIN
-	SELECT uoscode,semester,year,deptid,uosname,credits
+	SELECT uoscode,deptid,uosname,credits
     FROM transcript NATURAL JOIN unitofstudy
     WHERE studid = in_studid AND year = in_year AND semester = in_semester;
 END//
@@ -28,8 +28,8 @@ END//
 DROP PROCEDURE IF EXISTS list_transcript//
 CREATE PROCEDURE list_transcript(IN id INT(11))
 BEGIN
-	SELECT uoscode,semester,year,grade
-    FROM transcript 
+	SELECT uoscode,uosname,semester,year,grade
+    FROM transcript natural join unitofstudy
     WHERE studid = id;
 END//
 
@@ -56,6 +56,16 @@ DROP TRIGGER IF EXISTS enroll//
 CREATE TRIGGER enroll BEFORE INSERT ON transcript
 FOR EACH ROW
 	BEGIN
+		# max-enrollment
+        IF EXISTS
+        (
+			SELECT *
+            FROM uosoffering
+            WHERE NEW.UoSCode = UoSCode AND NEW.semester = semester AND NEW.year = year AND enrollment >= MaxEnrollment
+        )
+        THEN
+			SIGNAL SQLSTATE '45008' SET MESSAGE_TEXT = 'Enrollment Failed - Maximum Enrollment Capacity Reached';
+		END IF;
         # pre-requisites limitation
         IF EXISTS
         (
@@ -65,7 +75,7 @@ FOR EACH ROW
 			WHERE NEW.studid = transcript.studid AND requires.uoscode = NEW.uoscode AND (grade IS NULL OR grade = 'F')
         )
         THEN
-			SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Unsatisfied Pre-requisites';
+			SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Enrollment Failed - Following Pre-requisites not Satisfied';
 		END IF;
 	END//
 
@@ -76,8 +86,7 @@ BEGIN
     CREATE TABLE enroll_candidate_courses AS
 	SELECT uoscode,semester,year,deptid,uosname,credits
 	FROM uosoffering natural join unitofstudy
-	WHERE (enrollment < maxenrollment) 
-		AND ((semester = in_semester AND year = in_year) OR (semester = in_next_semester AND year = in_next_year))
+	WHERE ((semester = in_semester AND year = in_year) OR (semester = in_next_semester AND year = in_next_year))
 		AND NOT EXISTS(SELECT * FROM transcript WHERE in_studid = studid AND uosoffering.uoscode = uoscode);
 	SELECT * FROM enroll_candidate_courses;
 END//
@@ -92,23 +101,35 @@ BEGIN
 END//
 
 DROP PROCEDURE IF EXISTS enroll//
-CREATE PROCEDURE enroll(IN in_studid INT(11), IN in_uoscode CHAR(8))
+CREATE PROCEDURE enroll(IN in_studid INT(11), IN in_uoscode CHAR(8), IN in_semester CHAR(2),IN in_year INT(11))
 BEGIN
-	SELECT semester,year into @Q,@Y FROM enroll_candidate_courses WHERE uoscode = in_uoscode;
 	INSERT INTO transcript(studid,uoscode,semester,year,grade)
-    VALUES(in_studid,in_uoscode,@Q,@Y,NULL);
+    VALUES(in_studid,in_uoscode,in_semester,in_year,NULL);
 	# update enroll number
 	UPDATE uosoffering
 	SET enrollment = enrollment + 1
-	WHERE uoscode = in_uoscode AND semester = @Q AND year = @Y;
+	WHERE uoscode = in_uoscode AND semester = in_semester AND year = in_year;
 END//
 
 DROP PROCEDURE IF EXISTS update_profile//
-CREATE PROCEDURE update_profile(IN studid INT(11), IN userpassword VARCHAR(10), IN useraddress VARCHAR(50))
+CREATE PROCEDURE update_profile(IN studid INT(11), IN userpassword VARCHAR(10), IN useraddress VARCHAR(50), IN flag INT)
 BEGIN
-	UPDATE student
-    SET Address = useraddress, Password = userpassword
-    WHERE Id = studid;
+	IF flag = 0
+    THEN 
+		UPDATE student
+		SET Address = useraddress, Password = userpassword
+		WHERE Id = studid;
+	ELSEIF flag = 1
+    THEN 
+		UPDATE student
+		SET Password = userpassword
+		WHERE Id = studid;
+	ELSEIF flag = 2
+    THEN 
+		UPDATE student
+		SET Address = useraddress
+		WHERE Id = studid;
+	END IF;
 END//
 
 DROP PROCEDURE IF EXISTS print_withdraw_candidate_courses//

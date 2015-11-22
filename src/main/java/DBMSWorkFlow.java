@@ -1,8 +1,4 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.sql.*;
-import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -10,90 +6,22 @@ import java.util.List;
 public class DBMSWorkFlow {
     private Student currentStudent;
     private Connection conn;
-    private String semester;
-    private int year;
+    private QuarterYear currentQuarterYear;
+    private QuarterYear nextQuarterYear;
 
     public Student getStudent(){
         return currentStudent;
     }
 
-//    public void mainController() throws IOException, SQLException{
-//        System.out.println("----Login In----");
-//        if (!login()) {
-//            return;
-//        }
-//        listCurrentCourses();
-//        boolean quit = false;
-//        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
-//        while(!quit){
-//            System.out.println();
-//            System.out.println("----Main Menu----");
-//            System.out.println("Please Enter Action Code:");
-//            System.out.println("Possible Actions: 1 for list transcript");
-//            System.out.println("Possible Actions: 2 for enroll");
-//            System.out.println("Possible Actions: 3 for withdraw");
-//            System.out.println("Possible Actions: 4 for update profile");
-//            System.out.println("Possible Actions: 0 for logout");
-//            int action_code = Integer.parseInt(bufferRead.readLine());
-//            switch (action_code){
-//                case 0:
-//                    quit = true;
-//                    break;
-//                case 1:
-//                    listTranscript();
-//                    boolean quitTranscript = false;
-//                    BufferedReader bufferReadTranscript = new BufferedReader(new InputStreamReader(System.in));
-//                    while(!quitTranscript){
-//                        System.out.println();
-//                        System.out.println("----Course Detail View----");
-//                        System.out.println("Please Enter Action Code:");
-//                        System.out.println("Possible Actions: 1 for see course detail");
-//                        System.out.println("Possible Actions: 0 for go back");
-//                        int transcript_action_code = Integer.parseInt(bufferReadTranscript.readLine());
-//                        switch (transcript_action_code) {
-//                            case 0:
-//                                quitTranscript = true;
-//                                break;
-//                            case 1:
-//                                listCourseDetail();
-//                                break;
-//                            default:
-//                                break;
-//                        }
-//                    }
-//                    break;
-//                case 2:
-//                    enroll();
-//                    break;
-//                case 3:
-//                    withdraw();
-//                    break;
-//                case 4:
-//                    updateProfile();
-//                    break;
-//                default:
-//                    break;
-//            }
-//
-//        }
-//    }
+    public QuarterYear getCurrentQuarterYear(){return currentQuarterYear;}
 
     private void serverConnInit() throws SQLException{
         conn = DriverManager.getConnection("jdbc:mysql://database495.coxgjlcsyyhn.us-east-1.rds.amazonaws.com:3306/project3-nudb?user=root&password=12345678");
     }
 
     private void updateDate() {
-        Calendar cal = Calendar.getInstance();
-        int month = cal.get(Calendar.MONTH);
-        this.year = cal.get(Calendar.YEAR);
-        if (month <= 2){
-            this.semester = "Q1";
-            this.year -= 1;
-        }else if (month >= 9) {
-            this.semester = "Q1";
-        }else{
-            this.semester = "Q2";
-        }
+        this.currentQuarterYear = new QuarterYear();
+        this.nextQuarterYear = currentQuarterYear.nextQuarterYear();
     }
 
     public boolean login(int id, String password) throws SQLException{
@@ -134,8 +62,8 @@ public class DBMSWorkFlow {
         String callProcedure = "{call list_current_courses(?,?,?)}";
         curCourses = conn.prepareCall(callProcedure);
         curCourses.setInt(1, currentStudent.getStudentId());
-        curCourses.setString(2, this.semester);
-        curCourses.setInt(3, this.year);
+        curCourses.setString(2, this.currentQuarterYear.quarterToString());
+        curCourses.setInt(3, this.currentQuarterYear.getYear());
 
         // list courses
         coursesSet = getCallResult(curCourses);
@@ -178,43 +106,34 @@ public class DBMSWorkFlow {
         releaseConnection(courseDetail, courseDetailSet);
         return resultString;
     }
-//
-//    private void updateProfile() throws IOException, SQLException {
-//        //initialization
-//        CallableStatement update;
-//        String password;
-//        String address;
-//
-//        // input new password and address
-//        System.out.println("Enter New Password:");
-//        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
-//        password = bufferRead.readLine();
-//        System.out.println("Enter New Address:");
-//        address = bufferRead.readLine();
-//
-//        //update profile
-//        String query = "{call update_profile(?,?,?)}";
-//
-//        update = conn.prepareCall(query);
-//        update.setInt(1, currentStudent.getStudentId());
-//        update.setString(2, password);
-//        update.setString(3, address);
-//
-//        update.execute();
-//        System.out.println("Profile get updated!");
-//    }
+
+    public void updateProfile(String password, String address, int flag) throws SQLException {
+        //initialization
+        CallableStatement update;
+
+        //update profile
+        String query = "{call update_profile(?,?,?,?)}";
+
+        update = conn.prepareCall(query);
+        update.setInt(1, currentStudent.getStudentId());
+        update.setString(2, password);
+        update.setString(3, address);
+        update.setInt(4, flag);
+
+        update.execute();
+    }
 
     public String[] listEnrollCandidates() throws SQLException{
         CallableStatement cStmt;
         ResultSet rs;
 
-        String callProcedure = "{call print_enroll_candidate_courses(?,?,?)}";
+        String callProcedure = "{call print_enroll_candidate_courses(?,?,?,?,?)}";
         cStmt = conn.prepareCall(callProcedure);
         cStmt.setInt(1, currentStudent.getStudentId());
-        cStmt.setString(2, this.semester);
-        cStmt.setInt(3, this.year);
-
-        String hint = "Enroll Candidate Courses:";
+        cStmt.setString(2, this.currentQuarterYear.quarterToString());
+        cStmt.setInt(3, this.currentQuarterYear.getYear());
+        cStmt.setString(4, this.nextQuarterYear.quarterToString());
+        cStmt.setInt(5, this.nextQuarterYear.getYear());
 
         rs = getCallResult(cStmt);
         String[] resultList = makeList(rs);
@@ -252,57 +171,52 @@ public class DBMSWorkFlow {
         releaseConnection(cStmt, rs);
         return resultList;
     }
-//
-//    private void printWithdrawCandidates() throws SQLException{
-//        CallableStatement cStmt;
-//        ResultSet rs;
-//
-//        String callProcedure = "{call print_withdraw_candidate_courses(?)}";
-//        cStmt = conn.prepareCall(callProcedure);
-//        cStmt.setInt(1, currentStudent.getStudentId());
-//
-//        String hint = "Withdraw Candidate Courses:";
-//
-//        rs = getCallResult(cStmt,"");
-//        list(rs,hint);
-//        releaseConnection(cStmt,rs);
-//    }
-//
-//    private boolean withdraw() throws IOException, SQLException{
-//        printWithdrawCandidates();
-//
-//        // initialization
-//        CallableStatement cStmt;
-//        String uoscode, semester;
-//        int year;
-//
-//        // read input
-//        System.out.println("Enter Course Code:");
-//        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
-//        uoscode = bufferRead.readLine();
-//        System.out.println("Enter Course Semester:");
-//        semester = bufferRead.readLine();
-//        System.out.println("Enter Course Year:");
-//        year = Integer.parseInt(bufferRead.readLine());
-//
-//        // call procedure
-//        String callProcedure = "{call withdraw(?,?,?,?)}";
-//        cStmt = conn.prepareCall(callProcedure);
-//        cStmt.setInt(1, currentStudent.getStudentId());
-//        cStmt.setString(2, uoscode);
-//        cStmt.setString(3, semester);
-//        cStmt.setInt(4, year);
-//
-//        // check validity
-//        try {
-//            cStmt.execute();
-//        } catch (SQLException e){
-//            System.out.println("SQLException: " + e.getMessage());
-//            return false;
-//        }
-//        System.out.println("Successfully Withdrew!");
-//        return true;
-//    }
+
+    public String[] listWithdrawCandidates() throws SQLException{
+        CallableStatement cStmt;
+        ResultSet rs;
+
+        String callProcedure = "{call print_withdraw_candidate_courses(?)}";
+        cStmt = conn.prepareCall(callProcedure);
+        cStmt.setInt(1, currentStudent.getStudentId());
+
+        rs = getCallResult(cStmt);
+        String[] resultList = makeList(rs);
+        releaseConnection(cStmt, rs);
+        return resultList;
+    }
+
+    public boolean withdraw(String uoscode) throws SQLException{
+        // initialization
+        setWarningMessage(0);
+        CallableStatement cStmt;
+
+        // call procedure
+        String callProcedure = "{call withdraw(?,?)}";
+        cStmt = conn.prepareCall(callProcedure);
+        cStmt.setInt(1, currentStudent.getStudentId());
+        cStmt.setString(2, uoscode);
+
+        cStmt.execute();
+        return true;
+    }
+
+    private void setWarningMessage (int warningMessage) throws SQLException{
+        String callProcedure = "{call set_warning_message(?)}";
+        CallableStatement cStmt = conn.prepareCall(callProcedure);
+        cStmt.setInt(1, warningMessage);
+        cStmt.execute();
+    }
+
+    public int checkWarningMessage () throws SQLException{
+        String callProcedure = "{call check_warning_message()}";
+        CallableStatement cStmt = conn.prepareCall(callProcedure);
+        ResultSet rs = getCallResult(cStmt);
+        if (rs == null) return 0;
+        rs.first();
+        return  Integer.parseInt(rs.getObject(1).toString());
+
+    }
 
     private ResultSet getCallResult(CallableStatement cStmt) throws SQLException {
         if (!cStmt.execute()) {

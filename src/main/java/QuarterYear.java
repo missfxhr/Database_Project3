@@ -48,6 +48,10 @@ public class QuarterYear {
 
     }
 
+    public String toString(){
+        return quarterToString() + "-" + Integer.toString(year);
+    }
+
     public int getYear(){
         return (this.year);
     }

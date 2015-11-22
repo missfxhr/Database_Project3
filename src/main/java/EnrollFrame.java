@@ -16,7 +16,7 @@ public class EnrollFrame extends JFrame{
         super("Enroll Menu");
         setContentPane(panel);
         pack();
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
         workFlow = workflow;
 
@@ -37,15 +37,15 @@ public class EnrollFrame extends JFrame{
                         enrollResult.setText("Enrollment Succeeded");
                     }
                 } catch (SQLException e1) {
-                    if (Integer.parseInt(e1.getSQLState())==45004) {
-                        try {
-                            enrollResult.setText("Enrollment Failed - Following Pre-requisites not Satisfied");
+                    try {
+                        enrollResult.setText(e1.getMessage());
+                        if (Integer.parseInt(e1.getSQLState())==45004) {
                             prerequisiteList.setListData(workFlow.listPrerequisites(selectedValues[0]));
-                        }catch (SQLException e2) {
-                            System.out.println("SQLException: " + e2.getMessage());
-                            System.out.println("SQLState: " + e2.getSQLState());
-                            System.out.println("VendorError: " + e2.getErrorCode());
                         }
+                    } catch (SQLException e2) {
+                        System.out.println("SQLException: " + e2.getMessage());
+                        System.out.println("SQLState: " + e2.getSQLState());
+                        System.out.println("VendorError: " + e2.getErrorCode());
                     }
                     System.out.println("SQLException: " + e1.getMessage());
                     System.out.println("SQLState: " + e1.getSQLState());
