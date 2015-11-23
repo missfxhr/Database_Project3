@@ -119,12 +119,12 @@ BEGIN
 		UPDATE student
 		SET Address = useraddress, Password = userpassword
 		WHERE Id = studid;
-	ELSEIF flag = 1
+	ELSEIF flag = 2
     THEN 
 		UPDATE student
 		SET Address = useraddress
 		WHERE Id = studid;
-	ELSEIF flag = 2
+	ELSEIF flag = 1
     THEN 
 		UPDATE student
 		SET Password = userpassword

@@ -22,6 +22,18 @@ public class UpdateProfileFrame extends JFrame {
 
         workFlow = workflow;
 
+        updatePasswordCheckBox.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                newPassword.setEditable(updatePasswordCheckBox.isSelected());
+            }
+        });
+
+        updateAddressCheckBox.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                newAddress.setEditable(updateAddressCheckBox.isSelected());
+            }
+        });
+
         updateButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent event) {
                 int updatePassword = updatePasswordCheckBox.isSelected()?1:0;
