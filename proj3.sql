@@ -70,9 +70,9 @@ FOR EACH ROW
         IF EXISTS
         (
 			SELECT grade
-			FROM requires LEFT JOIN transcript
-			ON requires.prerequoscode = transcript.uoscode
-			WHERE NEW.studid = transcript.studid AND requires.uoscode = NEW.uoscode AND (grade IS NULL OR grade = 'F')
+			FROM requires LEFT JOIN (SELECT * FROM transcript WHERE NEW.studid = studid) A
+			ON requires.prerequoscode = A.uoscode
+			WHERE requires.uoscode = NEW.uoscode AND (A.grade IS NULL OR A.grade = 'F')
         )
         THEN
 			SIGNAL SQLSTATE '45004' SET MESSAGE_TEXT = 'Enrollment Failed - Following Pre-requisites not Satisfied';
@@ -95,9 +95,9 @@ DROP PROCEDURE IF EXISTS print_prerequisites//
 CREATE PROCEDURE print_prerequisites(IN in_studid INT(11), IN in_uoscode CHAR(8))
 BEGIN
 	SELECT transcript.uoscode as uoscode, transcript.semester as semester, transcript.year as year, transcript.grade as grade
-	FROM requires LEFT JOIN transcript
-	ON requires.prerequoscode = transcript.uoscode
-	WHERE in_studid = transcript.studid AND requires.uoscode = in_uoscode AND (grade IS NULL OR grade = 'F');
+	FROM requires LEFT JOIN (SELECT * FROM transcript WHERE NEW.studid = studid) A
+	ON requires.prerequoscode = A.uoscode
+	WHERE requires.uoscode = in_uoscode AND (A.grade IS NULL OR A.grade = 'F');
 END//
 
 DROP PROCEDURE IF EXISTS enroll//
